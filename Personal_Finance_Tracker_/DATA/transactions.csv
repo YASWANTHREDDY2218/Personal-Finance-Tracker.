@@ -1,0 +1,8 @@
+id,username,type,amount,category,description,date
+1,mani,income,50000.00,job,monthly,2026-11-03
+2,mani,expense,5000.00,food,daily,2026-11-03
+3,mani,savings,20000.00,Savings,Savings Goal: laptop,2026-11-03
+4,yaswanth,income,100000.00,salary,monthly income,2026-11-05
+5,yaswanth,savings,10000.00,Savings,Savings Goal: bike,2026-11-05
+6,yaswanth,expense,400.00,food,normal,2026-11-05
+7,yaswanth,expense,3000.00,traveling,trip,2026-11-05

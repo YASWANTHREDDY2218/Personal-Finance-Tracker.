@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Finance Tracker</title>
+  <meta name="description" content="Smart personal finance management — track income, expenses, budgets and savings goals in one place." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ===================== TOAST CONTAINER ===================== -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- ===================== CONFIRM DIALOG ===================== -->
+<div id="confirm-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-message">This action cannot be undone.</p>
+    <div class="confirm-actions">
+      <button id="confirm-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="confirm-ok" class="btn btn-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUTH SCREEN ===================== -->
+<div id="auth-screen" class="auth-screen hidden">
+  <div class="auth-bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-icon">💰</span>
+      <h1>Finance Tracker</h1>
+      <p>Manage your money, smartly.</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button id="tab-login" class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+      <button id="tab-register" class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+      <div class="field-group">
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" placeholder="Enter your username" autocomplete="username" required />
+      </div>
+      <div class="field-group">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+      </div>
+      <div id="login-error" class="form-error hidden"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+        <span class="btn-text">Sign In</span>
+        <span class="btn-spinner hidden"></span>
+      </button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+      <div class="field-group">
+        <label for="reg-username">Username</label>
+        <input id="reg-username" type="text" placeholder="Choose a username (min 3 chars)" autocomplete="username" required />
+      </div>
+      <div class="field-group">
+        <label for="reg-password">Password</label>
+        <input id="reg-password" type="password" placeholder="Choose a password (min 4 chars)" autocomplete="new-password" required />
+      </div>
+      <div id="reg-error" class="form-error hidden"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="reg-btn">
+        <span class="btn-text">Create Account</span>
+        <span class="btn-spinner hidden"></span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="app" class="app hidden">
+
+  <!-- Mobile header -->
+  <header class="mobile-header">
+    <button id="hamburger" class="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="mobile-logo">💰 Finance</div>
+    <div class="mobile-user" id="mobile-user-name"></div>
+  </header>
+
+  <!-- Sidebar overlay for mobile -->
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo-icon">💰</span>
+      <div>
+        <div class="sidebar-title">Finance Tracker</div>
+        <div class="sidebar-username" id="sidebar-username"></div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-page="transactions" onclick="navigate('transactions')">
+        <span class="nav-icon">💳</span>
+        <span>Transactions</span>
+      </a>
+      <a href="#" class="nav-item" data-page="budgets" onclick="navigate('budgets')">
+        <span class="nav-icon">📋</span>
+        <span>Budgets</span>
+      </a>
+      <a href="#" class="nav-item" data-page="goals" onclick="navigate('goals')">
+        <span class="nav-icon">🎯</span>
+        <span>Savings Goals</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-full" onclick="handleLogout()" id="logout-btn">
+        <span>🚪</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content area -->
+  <main class="main-content">
+
+    <!-- ===== DASHBOARD PAGE ===== -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p class="page-subtitle" id="dashboard-date"></p>
+      </div>
+
+      <!-- Metric cards -->
+      <div class="metrics-grid" id="metrics-grid">
+        <div class="metric-card skeleton" id="card-income">
+          <div class="metric-icon income-icon">💹</div>
+          <div class="metric-body">
+            <div class="metric-label">Total Income</div>
+            <div class="metric-value" id="val-income">—</div>
+          </div>
+        </div>
+        <div class="metric-card skeleton" id="card-expenses">
+          <div class="metric-icon expense-icon">💸</div>
+          <div class="metric-body">
+            <div class="metric-label">Total Expenses</div>
+            <div class="metric-value" id="val-expenses">—</div>
+          </div>
+        </div>
+        <div class="metric-card skeleton" id="card-balance">
+          <div class="metric-icon balance-icon">💰</div>
+          <div class="metric-body">
+            <div class="metric-label">Available Balance</div>
+            <div class="metric-value" id="val-balance">—</div>
+          </div>
+        </div>
+        <div class="metric-card skeleton" id="card-savings">
+          <div class="metric-icon savings-icon">📈</div>
+          <div class="metric-body">
+            <div class="metric-label">Savings Rate</div>
+            <div class="metric-value" id="val-savings-rate">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="charts-row">
+        <div class="glass-card chart-card">
+          <h3>Monthly Income vs Expenses</h3>
+          <div class="chart-wrap">
+            <canvas id="chart-monthly"></canvas>
+          </div>
+        </div>
+        <div class="glass-card chart-card">
+          <h3>Spending by Category</h3>
+          <div class="chart-wrap chart-wrap-donut">
+            <canvas id="chart-donut"></canvas>
+          </div>
+          <div id="donut-empty" class="empty-state hidden">
+            <span>🛒</span><p>No expenses this month</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <div class="glass-card" id="insights-card">
+        <h3>🧠 Smart Insights</h3>
+        <div id="insights-list" class="insights-list"></div>
+      </div>
+    </section>
+
+    <!-- ===== TRANSACTIONS PAGE ===== -->
+    <section id="page-transactions" class="page">
+      <div class="page-header">
+        <h2>Transactions</h2>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="toggleAddTxnForm()">+ Add Transaction</button>
+          <button class="btn btn-ghost" onclick="exportTransactions()" title="Export to CSV">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Add form -->
+      <div id="add-txn-form" class="glass-card form-card hidden">
+        <h3>New Transaction</h3>
+        <form onsubmit="submitTransaction(event)">
+          <div class="form-row">
+            <div class="field-group">
+              <label for="txn-type">Type</label>
+              <select id="txn-type" required>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="txn-amount">Amount (₹)</label>
+              <input id="txn-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field-group">
+              <label for="txn-category">Category</label>
+              <input id="txn-category" type="text" placeholder="e.g. Food, Salary" required />
+            </div>
+            <div class="field-group">
+              <label for="txn-date">Date</label>
+              <input id="txn-date" type="date" required />
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="txn-desc">Description</label>
+            <input id="txn-desc" type="text" placeholder="Brief description" required />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Transaction</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleAddTxnForm()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Filters -->
+      <div class="glass-card filter-bar">
+        <input id="txn-search" type="text" placeholder="🔍 Search description or category…" oninput="applyTxnFilters()" />
+        <select id="txn-filter-type" onchange="applyTxnFilters()">
+          <option value="">All Types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <input id="txn-filter-from" type="date" onchange="applyTxnFilters()" title="From date" />
+        <input id="txn-filter-to" type="date" onchange="applyTxnFilters()" title="To date" />
+        <button class="btn btn-ghost btn-sm" onclick="clearTxnFilters()">Clear</button>
+      </div>
+
+      <!-- Table -->
+      <div class="glass-card table-card">
+        <div class="table-wrap">
+          <table id="txn-table">
+            <thead>
+              <tr>
+                <th class="sortable" onclick="sortTxns('date')">Date <span id="sort-date-icon">↕</span></th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th class="sortable" onclick="sortTxns('amount')">Amount <span id="sort-amount-icon">↕</span></th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="txn-tbody"></tbody>
+          </table>
+        </div>
+        <div id="txn-empty" class="empty-state hidden">
+          <span>📭</span><p>No transactions found</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== BUDGETS PAGE ===== -->
+    <section id="page-budgets" class="page">
+      <div class="page-header">
+        <h2>Budgets</h2>
+        <button class="btn btn-primary" onclick="toggleAddBudgetForm()">+ Set Budget</button>
+      </div>
+
+      <!-- Add budget form -->
+      <div id="add-budget-form" class="glass-card form-card hidden">
+        <h3>Set Budget</h3>
+        <form onsubmit="submitBudget(event)">
+          <div class="form-row">
+            <div class="field-group">
+              <label for="budget-category">Category</label>
+              <input id="budget-category" type="text" placeholder="e.g. Food, Transport" required />
+            </div>
+            <div class="field-group">
+              <label for="budget-amount">Monthly Limit (₹)</label>
+              <input id="budget-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Budget</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleAddBudgetForm()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="budgets-grid" class="cards-grid"></div>
+      <div id="budgets-empty" class="empty-state hidden">
+        <span>📋</span><p>No budgets set yet. Click "Set Budget" to get started.</p>
+      </div>
+    </section>
+
+    <!-- ===== SAVINGS GOALS PAGE ===== -->
+    <section id="page-goals" class="page">
+      <div class="page-header">
+        <h2>Savings Goals</h2>
+        <button class="btn btn-primary" onclick="toggleAddGoalForm()">+ New Goal</button>
+      </div>
+
+      <!-- Add goal form -->
+      <div id="add-goal-form" class="glass-card form-card hidden">
+        <h3>New Savings Goal</h3>
+        <form onsubmit="submitGoal(event)">
+          <div class="form-row">
+            <div class="field-group">
+              <label for="goal-name">Goal Name</label>
+              <input id="goal-name" type="text" placeholder="e.g. Emergency Fund" required />
+            </div>
+            <div class="field-group">
+              <label for="goal-target">Target Amount (₹)</label>
+              <input id="goal-target" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Create Goal</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleAddGoalForm()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="goals-grid" class="cards-grid"></div>
+      <div id="goals-empty" class="empty-state hidden">
+        <span>🎯</span><p>No savings goals yet. Create one to get started!</p>
+      </div>
+
+      <!-- Add to goal modal -->
+      <div id="deposit-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-box">
+          <h3>Add to Goal</h3>
+          <p id="deposit-goal-name" class="modal-subtitle"></p>
+          <form onsubmit="submitDeposit(event)">
+            <div class="field-group">
+              <label for="deposit-amount">Amount (₹)</label>
+              <input id="deposit-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            </div>
+            <div class="field-group">
+              <label for="deposit-date">Date</label>
+              <input id="deposit-date" type="date" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add Savings</button>
+              <button type="button" class="btn btn-ghost" onclick="closeDepositModal()">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
